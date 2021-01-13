@@ -3,16 +3,19 @@
     <video 
       src="../assets/cover.mp4"  
       ref="v1" 
-      @loadeddata="durationchangeEvent"
+      @durationchange="durationchangeEvent"
       @timeupdate= "timeupdateEvent"
       @canplay= "canplayEvent1"
+      @ended="endedEvent"
       style="display:none;width:1920px;height:1080px"
     ></video>
     <video 
       src="../assets/movie.mp4"  
       ref="v2" 
-      @loadeddata="durationchangeEvent2"
+      @durationchange="durationchangeEvent2"
+      @timeupdate= "timeupdateEvent2"
       @canplay= "canplayEvent2"
+      @ended="endedEvent2"
       style="display:none;width:1920px;height:1080px"
       ></video>
     <canvas ref="canvas" class="canvas" width="1200px" height="360px">
@@ -22,7 +25,7 @@
     <div class="video-control" >
           <span
             class="timing"
-          >{{ currentTime}}/{{ durationTime}}</span>
+          >{{ videoNum}}/{{ durationTime}}</span>
           <!-- <div class="control-controller">
             <svg-icon class="icon-class" iconClass="player-control-rewind" @click.native="rewindEvent" />
             <span class="is-video-play-icon" @click="switchVideoPlayEvent">
@@ -41,7 +44,7 @@
           </div> -->
           <div class="control-slider">
             <el-slider
-              v-model="percent"
+              v-model="videoNum"
               :max="durationTime"
               @input="changeSliderProgressEvent"
               
@@ -57,7 +60,8 @@
             </div> -->
           </div>
         </div>
-        <svg-icon icon-class="volume" />
+        
+        <div @click="isBegin()" style="width:100px;height:100px;background:red">开始暂停</div>
   </div>
 </template>
 
@@ -69,34 +73,62 @@ export default {
   },
   data(){
     return {
-      timer:null,
       //视频进度条的时长
-      percent:0,
+      videoNum:0,
        // 当前时间
       currentTime:  0,
-      currentTimeV1:  0,
-      currentTimeV2:  0,
+      currentTime1: 0,
+      currentTime2: 0,
       //总时长
       durationTime: 0,
-      dT1:0,
-      dt2:0,
+      durationTime1: 0,
+      durationTime2: 0,
+      //是否能可以播放
+      isPlay: false,
       //当前videoDom
-      v1:'',
-      v2:'',
-      //两个视频是否加载完成
-      isloadV1:false,
-      isloadV2:false,
+      v1: '',
+      v2: '',
+      //视频是否加载完成
+      v1Ready: false,
+      v2Ready: false,
+      // 开关
+      bg:true
     }
   },
-  async mounted(){
-    //重绘视频
-    
-    await this.canvasFun()
 
+  // computed:{
+  //   currentTime:{
+  //     get: function() {
+  //       return this.videoNum
+  //     },
+  //     set: function(){
+  //       return this.videoNum
+  //     }
+  //   },
+  // },
+  async mounted(){
+    this.readyToPlayVideo()
+    //绘制视频
+    this.canvasFun()
   },
   methods:{
-    
-    canvasFun(){
+    //暂停，开始
+    isBegin(){
+      if(this.bg ){
+        this.v1.pause()
+        this.v2.pause()
+        this.bg = !this.bg
+        console.log(this.bg)
+      }else{
+        this.v1.play()
+        this.v2.play()
+        this.bg = !this.bg
+        console.log(this.bg)
+      }
+      
+    },
+
+    async canvasFun(){
       let canvas = this.$refs.canvas
       this.v1 = this.$refs.v1
       this.v2 = this.$refs.v2
@@ -117,26 +149,68 @@ export default {
       // })
       // this.v1.play()
       // this.v2.play();
-       
-       let ratio = this.getPixelRatio(ctx);
-        console.log(ratio)
 
-        this.currentTimeV1 = this.v1.currentTime
-        this.currentTimeV2 = this.v2.currentTime
+      // this.readyToPlayVideo()
+ 
+      // 如果都加载完成两个视频播放
+      // if(this.isPlay){
+      //   this.v1.play()
+      //   this.v2.play()
+      // }else{
+      //   this.v1.pause()
+      //   this.v2.pause()
+      // }
 
-        ctx.clearRect(0, 0,canvas.width,canvas.height)
-				ctx.drawImage(this.v1, 0, 0,(canvas.width/2 -10)*ratio,canvas.height*ratio)  //绘制视频
-        ctx.drawImage(this.v2, canvas.width/2, 0 ,(canvas.width/2 -10)*ratio,canvas.height*ratio)
+      //确定用总时长，当前时长
+      this.durationTime = this.durationTime1 > this.durationTime2 ? this.durationTime1 : this.durationTime2
+      // console.log(this.durationTime,'总时长')
+      this.currentTime = this.durationTime1 > this.durationTime2 ? this.v1.currentTime : this.v2.currentTime
+      // console.log(this.currentTime,'当前时长')
+      this.videoNum = this.currentTime
+      this.currentTime1 = this.currentTime
+      this.currentTime2 = this.currentTime
+      
 
-        // let currentPercent = this.currentTimeV1
-        // this.percent = currentPercent
-     
-        requestAnimationFrame(this.canvasFun)
+      let ratio = this.getPixelRatio(ctx);
+
+      // this.currentTimeV1 = this.v1.currentTime
+      // this.currentTimeV2 = this.v2.currentTime
+      ctx.clearRect(0, 0,canvas.width,canvas.height)
+			ctx.drawImage(this.v1, 0, 0,(canvas.width/2 -10)*ratio,canvas.height*ratio)  //绘制视频
+      ctx.drawImage(this.v2, canvas.width/2, 0 ,(canvas.width/2 -10)*ratio,canvas.height*ratio)
+      // let currentPercent = this.currentTimeV1
+      // this.percent = currentPercent
+      requestAnimationFrame(this.canvasFun)
       
     },
 
-    //是否都加载完成
+    //两个视频都加载完成了
+    async readyToPlayVideo(){
+      // console.log(this.isPlay,'是否能播放',new Date())
+      await this.canplayEvent1()
+      await this.canplayEvent2()
+      this.isPlay = (this.v1Ready && this.v2Ready && this.v1 && this.v2)   
+      // console.log(this.isPlay,'是否能播放',new Date())
 
+      // 如果都加载完成两个视频播放
+      if(this.isPlay){
+        this.v1.play()
+        this.v2.play()
+      }else{
+        this.v1.pause()
+        this.v2.pause()
+      }
+    },
+
+    //是否都加载完成
+    canplayEvent1(){
+      this.v1Ready = true
+      // console.log('v1加载完成',new Date(),this.v1Ready)
+    },
+    canplayEvent2(){
+      this.v2Ready = true
+      //  console.log('v2加载完成',new Date(),this.v2Ready)
+    },
 
     //获得设备像素比
     getPixelRatio(context) {
@@ -150,64 +224,56 @@ export default {
  
     },
 
-   
-    // clickFn(e){
-    //   console.log(e)
-    //   let progress = this.$refs.progress
-    //   console.log(progress)
-    // },
 
-    // 播放位置发生改变时触发
+  // 播放位置发生改变时触发
     timeupdateEvent(val) {
-    this.currentTime = val.target.currentTime;
-    this.percent = this.currentTime;
-    console.log('111111111111111111')
+      this.currentTime1 = val.target.currentTime
+      // console.log(this.currentTime1,'111111111111111111')
   },
 
-    //视频可以播放时触发
-    canplayEvent1(){
-      this.isloadV1 = true;
-      console.log(new Date(),'QQQQQQQQQQQQQQQQQ');
-      this.durationTime = this.dT1 > this.dT2 ? this.dT1 : this.dT2
-      this.currentTime = this.dT1 > this.dT2 ? this.currentTimeV1 : this.currentTimeV2
-      this.v1.play();
-      this.v2.play();
-    },
-
-    canplayEvent2(){
-      this.isloadV2 = true;
-      console.log(new Date(),'QQQQQQQQQQQQQQQQQ');
-    },
+  timeupdateEvent2(val) {
+      this.currentTime2 = val.target.currentTime
+      // console.log(this.currentTime2,'22222222222222')
+  },
 
    
 
     //时长数据发生变化时
     durationchangeEvent() {
-    
-    this.dt2 = this.v2.duration
-    
-    console.log(this.durationTime,this.v1.duration,';;;;;;;;;;;;;;;;;;;;;')
+      this.durationTime1 = this.v1.duration
+      console.log(this.durationTime1,'==================')
     
   },
 
     durationchangeEvent2(){
-      this.dt2 = this.v2.duration
+      this.durationTime2 = this.v2.duration
+      console.log(this.durationTime2,'-----------------')
     },
 
     //改变slider改变视频当前时间
-    changeSliderProgressEvent(val) {
-    console.log(val)
-    let num = val - this.currentTime;
-    if (num != 0) {
-      this.v1.currentTime = val;
-      this.v2.currentTime = val;
-      this.v1.play();
-      this.v2.play();
-    }
-  }
+    async changeSliderProgressEvent(val) {
+    this.isPlay=false
+    console.log(val,this.currentTime,this.videoNum,'uuuuuuuuuuuuuuuuuuuuuuuuuuuuu')
+    this.currentTime = val;
+    this.currentTime1 = val;
+    this.currentTime2 = val;
+    this.videoNum = val;
+    // this.v1.play();
+    // this.v2.play();
+  },
     
+    //播放完成
+    endedEvent(){
+      this.v1.pause()
+    },
+    endedEvent2(){
+      this.v2.pause()
+    }
   },
 
+  watch:{
+
+  },
 }
 </script>
 
