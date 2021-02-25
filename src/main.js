@@ -12,6 +12,7 @@ Vue.prototype.$echarts = echarts
 import axios from 'axios'
 import './icons'
 
+import store from './components/store'
 import {fabric} from 'fabric'
 import { Chrome} from 'vue-color'
 
@@ -22,6 +23,7 @@ Vue.config.productionTip = false
 
 new Vue({
   render: h => h(App),
+  store,
   components: {
     'chrome-picker':Chrome
   }

@@ -1,46 +1,95 @@
 <template>
-  <div id="myChart" :style="{width: '1000px', height: '500px'}"></div>
+  <div>
+    <div>
+      {{msg}}
+      <br>
+      <input type="text" :value="msg" @input="updateMessage">
+    </div>
+    <div>{{ count }}</div>
+    <div>{{ doneTodos }}</div>
+    <div>{{ doneTodosCount }}</div>
+    <div>{{ getTodoById(2) }}</div>
+    <button @click="c()">+</button>
+    <br />
+    <br />
+    <br />
+    <button @click="a()">+</button>
+    <button @click="p()">-</button>
+  </div>
 </template>
 
 <script>
 import { Chrome } from "vue-color";
-import axios from 'axios'
-// import echarts from 'echarts'
+import axios from "axios";
+import { mapState, mapGetters, mapMutations, mapActions} from "vuex";
 export default {
   name: "HelloWorld",
-  props: {
-    msg: String,
-  },
   components: {},
   data() {
     return {
-      xdata: ["衬衫","羊毛衫","雪纺衫","裤子","高跟鞋","袜子", '嘻嘻嘻'],
-      ydata: [5, 20, 36, 10, 10, 20, 100]
+      msg2: "hello world",
+      localCount: 4,
     };
   },
-  mounted(){
-    this.drawLine()
+  computed: {
+    ...mapState(
+      ["count",'msg']
+      //   {
+      //    count:state => state.count,
+      //    countAlias:'count',
+      //    countPlusCount(state){
+      //      return state.count + this.localCount
+      //    }
+      //  }
+    ),
+    ...mapGetters(["doneTodos", "doneTodosCount", "getTodoById"]),
+  },
+  mounted() {
+    console.log(this.$store.state.moduleA.count);
+    this.$store.commit('moduleA/incremente')
+    console.log(this.$store.state.moduleA.count);
+    console.log(this.$store.state.moduleB.count);
+    this.$store.commit('moduleB/incremente')
+    this.$store.dispatch('moduleB/subModule/zz')
+    console.log(this.$store.getters['moduleB/subModule/zz'])
   },
   methods: {
-     drawLine(){
-        // 基于准备好的dom，初始化echarts实例
-        let myChart = this.$echarts.init(document.getElementById('myChart'), null, {renderer: 'svg'})
-        // 绘制图表
-        myChart.setOption({
-            title: { text: '在Vue中使用echarts' },
-            tooltip: {},
-            xAxis: {
-                data: this.xdata
-            },
-            yAxis: {},
-            series: [{
-                name: '销量',
-                type: 'bar',
-                data: this.ydata
-            }]
-        });
-    }
-  }
+    // c(){
+    //   // 1
+    //   // this.$store.commit('increment',{amount:8})
+    //   // 2
+    //   // this.$store.commit({
+    //   //   type:'increment',
+    //   //   amount:8
+    //   // })
+
+    // }
+
+    // 3
+    c() {
+      this.increment({ amount: 8 });
+    },
+    a() {
+      // 1
+      // this.$store.dispatch("incrementAsync");
+      this.incrementAsync()
+    },
+    p() {
+      this.push({ a: 1 });
+    },
+    testAction() {
+      this.$store.dispatch("actionA").then(() => {});
+    },
+    // change msg 
+    updateMessage(e){
+      this.updateMsg(e.target.value)
+    },
+     ...mapActions('some/nested/module', [
+        'foo' // 命名空间使用actions
+    ]),
+    ...mapMutations(["increment", "add", "push","updateMsg"]),
+    ...mapActions(['incrementAsync'])
+  },
 };
 </script>
 
